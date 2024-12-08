@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email & Link Tracking System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Email & Link Tracking System</h1>
+        
+        <!-- URL Shortener Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4">Create Tracking Link</h2>
+            <div class="space-y-4">
+                <input type="url" id="urlInput" placeholder="Enter URL to shorten" 
+                       class="w-full p-2 border rounded">
+                <input type="text" id="recipientInput" placeholder="Recipient Email (optional)" 
+                       class="w-full p-2 border rounded">
+                <input type="text" id="campaignIdInput" placeholder="Campaign ID (optional)" 
+                       class="w-full p-2 border rounded">
+                <button onclick="createLink()" 
+                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    Create Link
+                </button>
+            </div>
+            <div id="result" class="mt-4"></div>
+        </div>
+
+        <!-- Email Campaign Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4">Create Email Campaign</h2>
+            <div class="space-y-4">
+                <input type="text" id="campaignName" placeholder="Campaign Name" 
+                       class="w-full p-2 border rounded">
+                <button onclick="createCampaign()" 
+                        class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Create Campaign
+                </button>
+            </div>
+            <div id="campaignResult" class="mt-4"></div>
+        </div>
+
+        <!-- Stats Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4">Tracking Statistics</h2>
+            
+            <!-- Link Stats -->
+            <div class="mb-8">
+                <h3 class="text-lg font-medium mb-4">Link Tracking</h3>
+                <div id="linkStats" class="space-y-4"></div>
+            </div>
+
+            <!-- Email Campaign Stats -->
+            <div>
+                <h3 class="text-lg font-medium mb-4">Email Campaigns</h3>
+                <div id="campaignStats" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function createLink() {
+            const url = document.getElementById('urlInput').value;
+            const recipient = document.getElementById('recipientInput').value;
+            const campaignId = document.getElementById('campaignIdInput').value;
+            
+            if (!url) return;
+
+            try {
+                const response = await fetch('/api/create-link', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        url,
+                        recipient: recipient || null,
+                        campaign_id: campaignId || null
+                    })
+                });
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <div class="p-4 bg-green-100 rounded">
+                        <p>Short URL: <a href="${data.short_url}" class="text-blue-500" target="_blank">
+                            ${window.location.origin}${data.short_url}
+                        </a></p>
+                    </div>
+                `;
+                
+                loadStats();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function createCampaign() {
+            const name = document.getElementById('campaignName').value;
+            if (!name) return;
+
+            try {
+                const response = await fetch('/api/create-campaign', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name })
+                });
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('campaignResult');
+                resultDiv.innerHTML = `
+                    <div class="p-4 bg-green-100 rounded">
+                        <p class="font-medium">Campaign Created!</p>
+                        <p class="mt-2">Campaign ID: ${data.campaign_id}</p>
+                        <p class="mt-2">Tracking Pixel HTML:</p>
+                        <code class="block bg-gray-100 p-2 mt-1 text-sm">
+                            &lt;img src="${window.location.origin}/track/open/${data.campaign_id}/[EMAIL_ID].png?recipient=[EMAIL]" alt="" style="display:none"&gt;
+                        </code>
+                        <p class="mt-2 text-sm text-gray-600">
+                            Replace [EMAIL_ID] with a unique identifier for each email and [EMAIL] with the recipient's email address.
+                        </p>
+                    </div>
+                `;
+                
+                loadStats();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function formatDateTime(isoString) {
+            return new Date(isoString).toLocaleString();
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                // Update Link Stats
+                const linkStatsDiv = document.getElementById('linkStats');
+                linkStatsDiv.innerHTML = data.links.map(link => `
+                    <div class="border-b pb-4">
+                        <p class="font-medium">Original URL: ${link.original_url}</p>
+                        <p>Short Code: ${link.short_code}</p>
+                        <p>Campaign ID: ${link.campaign_id || 'N/A'}</p>
+                        <p>Recipient: ${link.recipient || 'N/A'}</p>
+                        <p>Total Clicks: ${link.total_clicks}</p>
+                        <p>Created: ${formatDateTime(link.created_at)}</p>
+                        
+                        ${link.clicks.length > 0 ? `
+                            <div class="mt-2">
+                                <p class="font-medium">Click Details:</p>
+                                <div class="ml-4">
+                                    ${link.clicks.map(click => `
+                                        <div class="mt-1">
+                                            <p>Time: ${formatDateTime(click.timestamp)}</p>
+                                            <p>Device: ${click.device_type}</p>
+                                            <p>Recipient: ${click.recipient || 'N/A'}</p>
+                                            ${click.referrer ? `<p>Referrer: ${click.referrer}</p>` : ''}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+
+                // Update Campaign Stats
+                const campaignStatsDiv = document.getElementById('campaignStats');
+                campaignStatsDiv.innerHTML = data.campaigns.map(campaign => `
+                    <div class="border-b pb-4">
+                        <p class="font-medium">Campaign: ${campaign.name}</p>
+                        <p>ID: ${campaign.campaign_id}</p>
+                        <p>Total Opens: ${campaign.total_opens}</p>
+                        <p>Unique Recipients: ${campaign.unique_recipients}</p>
+                        <p>Created: ${formatDateTime(campaign.created_at)}</p>
+                        
+                        ${campaign.opens.length > 0 ? `
+                            <div class="mt-2">
+                                <p class="font-medium">Open Details:</p>
+                                <div class="ml-4">
+                                    ${campaign.opens.map(open => `
+                                        <div class="mt-1">
+                                            <p>Recipient: ${open.recipient}</p>
+                                            <p>Time: ${formatDateTime(open.timestamp)}</p>
+                                            <p>Device: ${open.device_type}</p>
+                                            <p>Open Count: ${open.open_count}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Load stats on page load
+        loadStats();
+    </script>
+</body>
+</html>

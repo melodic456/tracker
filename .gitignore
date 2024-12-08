@@ -1,0 +1,58 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment directories
+venv/
+env/
+ENV/
+.venv/
+.idea/
+.vscode/
+
+# Flask specific
+instance/
+*.db
+*.sqlite3
+*.log
+*.pot
+*.mo
+
+# pyenv
+.python-version
+
+# Flask config
+config.py
+
+# IDE settings
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.idea/
+
+# Coverage directory
+.coverage
+.tox/
+.nox/
+.coverage.*
+*.hypothesis/
+
+# Distribution / packaging
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+sdist/
+var/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Other files you might want to ignore
+*.bak
+*.swp
