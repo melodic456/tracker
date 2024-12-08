@@ -14,7 +14,7 @@ ENV/
 
 # Flask specific
 instance/
-*.db
+
 *.sqlite3
 *.log
 *.pot
