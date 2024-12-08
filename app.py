@@ -1,12 +1,12 @@
 from flask import Flask, request, redirect, render_template, jsonify, send_file
 from datetime import datetime
 import os
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 from database import db
 from models import Link, Click, EmailOpen, EmailCampaign
 from utils import generate_short_code, get_client_info, create_tracking_pixel
 
-# load_dotenv()
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key')
