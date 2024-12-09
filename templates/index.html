@@ -9,7 +9,7 @@
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
         <h1 class="text-3xl font-bold mb-8">Email Campaigns</h1>
-<!--         teswtst -->
+        
         <!-- Create Campaign Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
             <h2 class="text-xl font-semibold mb-4">Create New Campaign</h2>
@@ -208,13 +208,21 @@
                     if (!trackingData.has(link.original_url)) {
                         trackingData.set(link.original_url, {
                             url: link.original_url,
-                            shortUrls: [],
+                            recipientLinks: new Map(),
                             clicks: [],
                             opens: []
                         });
                     }
                     const data = trackingData.get(link.original_url);
-                    data.shortUrls.push(`${window.location.origin}/r/${link.short_code}`);
+                    if (link.recipient) {
+                        if (!data.recipientLinks.has(link.recipient)) {
+                            data.recipientLinks.set(link.recipient, []);
+                        }
+                        data.recipientLinks.get(link.recipient).push({
+                            shortUrl: `${window.location.origin}/r/${link.short_code}`,
+                            shortCode: link.short_code
+                        });
+                    }
                     data.clicks.push(...link.clicks);
                 });
 
@@ -235,17 +243,13 @@
                     <div class="mb-8 border rounded-lg overflow-hidden">
                         <div class="bg-gray-50 p-4">
                             <h5 class="font-medium">Original URL: ${data.url}</h5>
-                            <div class="text-sm text-gray-600 mt-2">
-                                Short URLs: ${data.shortUrls.map(url => 
-                                    `<a href="${url}" class="text-blue-500 hover:underline" target="_blank">${url}</a>`
-                                ).join(', ')}
-                            </div>
                         </div>
                         <div class="p-4">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead>
                                     <tr>
                                         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Recipient</th>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Short URLs</th>
                                         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Link Clicks</th>
                                         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Email Opens</th>
                                         <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Last Activity</th>
@@ -267,12 +271,14 @@
         function getRecipientRows(data) {
             const recipients = new Set([
                 ...data.clicks.map(c => c.recipient),
-                ...data.opens.map(o => o.recipient)
+                ...data.opens.map(o => o.recipient),
+                ...Array.from(data.recipientLinks.keys())
             ]);
 
             return Array.from(recipients).map(recipient => {
                 const recipientClicks = data.clicks.filter(c => c.recipient === recipient);
                 const recipientOpens = data.opens.filter(o => o.recipient === recipient);
+                const recipientShortUrls = data.recipientLinks.get(recipient) || [];
                 const allDates = [
                     ...recipientClicks.map(c => new Date(c.timestamp)),
                     ...recipientOpens.map(o => new Date(o.timestamp))
@@ -286,6 +292,11 @@
                 return `
                     <tr>
                         <td class="px-4 py-2">${recipient || 'Unknown'}</td>
+                        <td class="px-4 py-2">
+                            ${recipientShortUrls.map(url => 
+                                `<a href="${url.shortUrl}" class="text-blue-500 hover:underline block" target="_blank">${url.shortUrl}</a>`
+                            ).join('')}
+                        </td>
                         <td class="px-4 py-2">${recipientClicks.length}</td>
                         <td class="px-4 py-2">${recipientOpens.reduce((sum, open) => sum + open.open_count, 0)}</td>
                         <td class="px-4 py-2">${lastActivity ? formatDateTime(lastActivity) : '-'}</td>
