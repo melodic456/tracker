@@ -8,7 +8,13 @@
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">Email Campaigns</h1>
+        <div class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Email Campaigns</h1>
+            <a href="{{ url_for('logout') }}" 
+               class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                Logout
+            </a>
+        </div>
         
         <!-- Create Campaign Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
@@ -181,6 +187,9 @@
                 `).join('');
             } catch (error) {
                 console.error('Error:', error);
+                if (error.response && error.response.status === 401) {
+                    window.location.href = '/login';
+                }
             }
         }
 
@@ -265,6 +274,9 @@
                 `).join('');
             } catch (error) {
                 console.error('Error:', error);
+                if (error.response && error.response.status === 401) {
+                    window.location.href = '/login';
+                }
             }
         }
 
