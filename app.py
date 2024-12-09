@@ -40,7 +40,6 @@ def index():
     return render_template('index.html')
 
 @app.route('/api/create-link', methods=['POST'])
-@login_required
 def create_link():
     data = request.get_json()
     original_url = data.get('url')
