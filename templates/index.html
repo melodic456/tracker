@@ -8,29 +8,11 @@
 </head>
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-8">
-        <h1 class="text-3xl font-bold mb-8">Email & Link Tracking System</h1>
+        <h1 class="text-3xl font-bold mb-8">Email Campaigns</h1>
         
-        <!-- URL Shortener Section -->
+        <!-- Create Campaign Section -->
         <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 class="text-xl font-semibold mb-4">Create Tracking Link</h2>
-            <div class="space-y-4">
-                <input type="url" id="urlInput" placeholder="Enter URL to shorten" 
-                       class="w-full p-2 border rounded">
-                <input type="text" id="recipientInput" placeholder="Recipient Email (optional)" 
-                       class="w-full p-2 border rounded">
-                <input type="text" id="campaignIdInput" placeholder="Campaign ID (optional)" 
-                       class="w-full p-2 border rounded">
-                <button onclick="createLink()" 
-                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Create Link
-                </button>
-            </div>
-            <div id="result" class="mt-4"></div>
-        </div>
-
-        <!-- Email Campaign Section -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 class="text-xl font-semibold mb-4">Create Email Campaign</h2>
+            <h2 class="text-xl font-semibold mb-4">Create New Campaign</h2>
             <div class="space-y-4">
                 <input type="text" id="campaignName" placeholder="Campaign Name" 
                        class="w-full p-2 border rounded">
@@ -42,60 +24,78 @@
             <div id="campaignResult" class="mt-4"></div>
         </div>
 
-        <!-- Stats Section -->
+        <!-- Campaigns List -->
         <div class="bg-white p-6 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Tracking Statistics</h2>
-            
-            <!-- Link Stats -->
-            <div class="mb-8">
-                <h3 class="text-lg font-medium mb-4">Link Tracking</h3>
-                <div id="linkStats" class="space-y-4"></div>
-            </div>
+            <h2 class="text-xl font-semibold mb-4">Your Campaigns</h2>
+            <div id="campaignsList" class="space-y-4"></div>
+        </div>
 
-            <!-- Email Campaign Stats -->
-            <div>
-                <h3 class="text-lg font-medium mb-4">Email Campaigns</h3>
-                <div id="campaignStats" class="space-y-4"></div>
+        <!-- Campaign Details Modal -->
+        <div id="campaignModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+            <div class="fixed inset-0 flex items-center justify-center">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 id="modalCampaignName" class="text-2xl font-bold"></h2>
+                        <button onclick="closeCampaignModal()" class="text-gray-500 hover:text-gray-700">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Create Link Section -->
+                    <div class="mb-8 border-b pb-6">
+                        <h3 class="text-xl font-semibold mb-4">Create Tracking Link</h3>
+                        <div class="space-y-4">
+                            <input type="url" id="urlInput" placeholder="Enter URL to shorten" 
+                                   class="w-full p-2 border rounded">
+                            <input type="text" id="recipientInput" placeholder="Recipient Email (optional)" 
+                                   class="w-full p-2 border rounded">
+                            <button onclick="createLink()" 
+                                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Create Link
+                            </button>
+                        </div>
+                        <div id="result" class="mt-4"></div>
+                    </div>
+
+                    <!-- Campaign Stats -->
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">Campaign Statistics</h3>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <div class="bg-blue-50 p-4 rounded">
+                                <p class="text-sm text-blue-600">Total Opens</p>
+                                <p id="totalOpens" class="text-2xl font-bold">-</p>
+                            </div>
+                            <div class="bg-green-50 p-4 rounded">
+                                <p class="text-sm text-green-600">Unique Recipients</p>
+                                <p id="uniqueRecipients" class="text-2xl font-bold">-</p>
+                            </div>
+                            <div class="bg-purple-50 p-4 rounded">
+                                <p class="text-sm text-purple-600">Total Links</p>
+                                <p id="totalLinks" class="text-2xl font-bold">-</p>
+                            </div>
+                        </div>
+
+                        <!-- Links Table -->
+                        <div class="mb-8">
+                            <h4 class="text-lg font-medium mb-4">Campaign Links</h4>
+                            <div id="campaignLinks" class="space-y-4"></div>
+                        </div>
+
+                        <!-- Email Opens -->
+                        <div>
+                            <h4 class="text-lg font-medium mb-4">Email Opens</h4>
+                            <div id="campaignOpens" class="space-y-4"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        async function createLink() {
-            const url = document.getElementById('urlInput').value;
-            const recipient = document.getElementById('recipientInput').value;
-            const campaignId = document.getElementById('campaignIdInput').value;
-            
-            if (!url) return;
-
-            try {
-                const response = await fetch('/api/create-link', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        url,
-                        recipient: recipient || null,
-                        campaign_id: campaignId || null
-                    })
-                });
-                const data = await response.json();
-                
-                const resultDiv = document.getElementById('result');
-                resultDiv.innerHTML = `
-                    <div class="p-4 bg-green-100 rounded">
-                        <p>Short URL: <a href="${data.short_url}" class="text-blue-500" target="_blank">
-                            ${window.location.origin}${data.short_url}
-                        </a></p>
-                    </div>
-                `;
-                
-                loadStats();
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
+        let currentCampaignId = null;
 
         async function createCampaign() {
             const name = document.getElementById('campaignName').value;
@@ -104,9 +104,7 @@
             try {
                 const response = await fetch('/api/create-campaign', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ name })
                 });
                 const data = await response.json();
@@ -120,13 +118,43 @@
                         <code class="block bg-gray-100 p-2 mt-1 text-sm">
                             &lt;img src="${window.location.origin}/track/open/${data.campaign_id}/[EMAIL_ID].png?recipient=[EMAIL]" alt="" style="display:none"&gt;
                         </code>
-                        <p class="mt-2 text-sm text-gray-600">
-                            Replace [EMAIL_ID] with a unique identifier for each email and [EMAIL] with the recipient's email address.
-                        </p>
                     </div>
                 `;
                 
-                loadStats();
+                loadCampaigns();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function createLink() {
+            const url = document.getElementById('urlInput').value;
+            const recipient = document.getElementById('recipientInput').value;
+            
+            if (!url) return;
+
+            try {
+                const response = await fetch('/api/create-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        url,
+                        recipient: recipient || null,
+                        campaign_id: currentCampaignId
+                    })
+                });
+                const data = await response.json();
+                
+                const resultDiv = document.getElementById('result');
+                resultDiv.innerHTML = `
+                    <div class="p-4 bg-green-100 rounded">
+                        <p>Short URL: <a href="${data.short_url}" class="text-blue-500" target="_blank">
+                            ${window.location.origin}${data.short_url}
+                        </a></p>
+                    </div>
+                `;
+                
+                loadCampaignDetails(currentCampaignId);
             } catch (error) {
                 console.error('Error:', error);
             }
@@ -136,65 +164,25 @@
             return new Date(isoString).toLocaleString();
         }
 
-        async function loadStats() {
+        async function loadCampaigns() {
             try {
                 const response = await fetch('/api/stats');
                 const data = await response.json();
                 
-                // Update Link Stats
-                const linkStatsDiv = document.getElementById('linkStats');
-                linkStatsDiv.innerHTML = data.links.map(link => `
-                    <div class="border-b pb-4">
-                        <p class="font-medium">Original URL: ${link.original_url}</p>
-                        <p>Short Code: ${link.short_code}</p>
-                        <p>Campaign ID: ${link.campaign_id || 'N/A'}</p>
-                        <p>Recipient: ${link.recipient || 'N/A'}</p>
-                        <p>Total Clicks: ${link.total_clicks}</p>
-                        <p>Created: ${formatDateTime(link.created_at)}</p>
-                        
-                        ${link.clicks.length > 0 ? `
-                            <div class="mt-2">
-                                <p class="font-medium">Click Details:</p>
-                                <div class="ml-4">
-                                    ${link.clicks.map(click => `
-                                        <div class="mt-1">
-                                            <p>Time: ${formatDateTime(click.timestamp)}</p>
-                                            <p>Device: ${click.device_type}</p>
-                                            <p>Recipient: ${click.recipient || 'N/A'}</p>
-                                            ${click.referrer ? `<p>Referrer: ${click.referrer}</p>` : ''}
-                                        </div>
-                                    `).join('')}
-                                </div>
+                const campaignsListDiv = document.getElementById('campaignsList');
+                campaignsListDiv.innerHTML = data.campaigns.map(campaign => `
+                    <div class="border rounded p-4 hover:bg-gray-50 cursor-pointer" 
+                         onclick="openCampaignModal('${campaign.campaign_id}')">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 class="font-medium">${campaign.name}</h3>
+                                <p class="text-sm text-gray-600">Created: ${formatDateTime(campaign.created_at)}</p>
                             </div>
-                        ` : ''}
-                    </div>
-                `).join('');
-
-                // Update Campaign Stats
-                const campaignStatsDiv = document.getElementById('campaignStats');
-                campaignStatsDiv.innerHTML = data.campaigns.map(campaign => `
-                    <div class="border-b pb-4">
-                        <p class="font-medium">Campaign: ${campaign.name}</p>
-                        <p>ID: ${campaign.campaign_id}</p>
-                        <p>Total Opens: ${campaign.total_opens}</p>
-                        <p>Unique Recipients: ${campaign.unique_recipients}</p>
-                        <p>Created: ${formatDateTime(campaign.created_at)}</p>
-                        
-                        ${campaign.opens.length > 0 ? `
-                            <div class="mt-2">
-                                <p class="font-medium">Open Details:</p>
-                                <div class="ml-4">
-                                    ${campaign.opens.map(open => `
-                                        <div class="mt-1">
-                                            <p>Recipient: ${open.recipient}</p>
-                                            <p>Time: ${formatDateTime(open.timestamp)}</p>
-                                            <p>Device: ${open.device_type}</p>
-                                            <p>Open Count: ${open.open_count}</p>
-                                        </div>
-                                    `).join('')}
-                                </div>
+                            <div class="text-right">
+                                <p class="text-sm">Opens: ${campaign.total_opens}</p>
+                                <p class="text-sm">Recipients: ${campaign.unique_recipients}</p>
                             </div>
-                        ` : ''}
+                        </div>
                     </div>
                 `).join('');
             } catch (error) {
@@ -202,8 +190,84 @@
             }
         }
 
-        // Load stats on page load
-        loadStats();
+        async function loadCampaignDetails(campaignId) {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+                
+                const campaign = data.campaigns.find(c => c.campaign_id === campaignId);
+                const campaignLinks = data.links.filter(l => l.campaign_id === campaignId);
+                
+                if (!campaign) return;
+
+                document.getElementById('modalCampaignName').textContent = campaign.name;
+                document.getElementById('totalOpens').textContent = campaign.total_opens;
+                document.getElementById('uniqueRecipients').textContent = campaign.unique_recipients;
+                document.getElementById('totalLinks').textContent = campaignLinks.length;
+
+                // Update Links Table
+                const linksDiv = document.getElementById('campaignLinks');
+                linksDiv.innerHTML = campaignLinks.map(link => `
+                    <div class="border-b pb-4">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">Original URL: ${link.original_url}</p>
+                                <p class="text-sm">Short URL: ${window.location.origin}/r/${link.short_code}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm">Clicks: ${link.total_clicks}</p>
+                            </div>
+                        </div>
+                        ${link.clicks.length > 0 ? `
+                            <div class="mt-2 ml-4">
+                                <p class="text-sm font-medium">Click Details:</p>
+                                ${link.clicks.map(click => `
+                                    <div class="mt-1 text-sm text-gray-600">
+                                        <p>Time: ${formatDateTime(click.timestamp)}</p>
+                                        <p>Device: ${click.device_type}</p>
+                                        <p>Recipient: ${click.recipient || 'N/A'}</p>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+
+                // Update Opens List
+                const opensDiv = document.getElementById('campaignOpens');
+                opensDiv.innerHTML = campaign.opens.map(open => `
+                    <div class="border-b pb-4">
+                        <p class="font-medium">Recipient: ${open.recipient}</p>
+                        <p class="text-sm">Time: ${formatDateTime(open.timestamp)}</p>
+                        <p class="text-sm">Device: ${open.device_type}</p>
+                        <p class="text-sm">Opens: ${open.open_count}</p>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        function openCampaignModal(campaignId) {
+            currentCampaignId = campaignId;
+            document.getElementById('campaignModal').classList.remove('hidden');
+            loadCampaignDetails(campaignId);
+        }
+
+        function closeCampaignModal() {
+            document.getElementById('campaignModal').classList.add('hidden');
+            currentCampaignId = null;
+        }
+
+        // Load campaigns on page load
+        loadCampaigns();
+
+        // Close modal when clicking outside
+        document.getElementById('campaignModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('campaignModal')) {
+                closeCampaignModal();
+            }
+        });
     </script>
 </body>
 </html>
