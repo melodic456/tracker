@@ -33,7 +33,7 @@
         <!-- Campaign Details Modal -->
         <div id="campaignModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
             <div class="fixed inset-0 flex items-center justify-center">
-                <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
+                <div class="bg-white p-6 rounded-lg shadow-xl w-11/12 max-w-6xl max-h-[90vh] overflow-y-auto">
                     <div class="flex justify-between items-center mb-4">
                         <h2 id="modalCampaignName" class="text-2xl font-bold"></h2>
                         <button onclick="closeCampaignModal()" class="text-gray-500 hover:text-gray-700">
@@ -77,16 +77,10 @@
                             </div>
                         </div>
 
-                        <!-- Links Table -->
+                        <!-- Combined Tracking Table -->
                         <div class="mb-8">
-                            <h4 class="text-lg font-medium mb-4">Campaign Links</h4>
-                            <div id="campaignLinks" class="space-y-4"></div>
-                        </div>
-
-                        <!-- Email Opens -->
-                        <div>
-                            <h4 class="text-lg font-medium mb-4">Email Opens</h4>
-                            <div id="campaignOpens" class="space-y-4"></div>
+                            <h4 class="text-lg font-medium mb-4">Campaign Tracking Details</h4>
+                            <div id="campaignTracking"></div>
                         </div>
                     </div>
                 </div>
@@ -205,47 +199,100 @@
                 document.getElementById('uniqueRecipients').textContent = campaign.unique_recipients;
                 document.getElementById('totalLinks').textContent = campaignLinks.length;
 
-                // Update Links Table
-                const linksDiv = document.getElementById('campaignLinks');
-                linksDiv.innerHTML = campaignLinks.map(link => `
-                    <div class="border-b pb-4">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="font-medium">Original URL: ${link.original_url}</p>
-                                <p class="text-sm">Short URL: ${window.location.origin}/r/${link.short_code}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-sm">Clicks: ${link.total_clicks}</p>
+                // Create tracking table
+                const trackingDiv = document.getElementById('campaignTracking');
+                const trackingData = new Map();
+
+                // Group links by original URL
+                campaignLinks.forEach(link => {
+                    if (!trackingData.has(link.original_url)) {
+                        trackingData.set(link.original_url, {
+                            url: link.original_url,
+                            shortUrls: [],
+                            clicks: [],
+                            opens: []
+                        });
+                    }
+                    const data = trackingData.get(link.original_url);
+                    data.shortUrls.push(`${window.location.origin}/r/${link.short_code}`);
+                    data.clicks.push(...link.clicks);
+                });
+
+                // Add opens data
+                campaign.opens.forEach(open => {
+                    campaignLinks.forEach(link => {
+                        if (link.recipient === open.recipient) {
+                            const data = trackingData.get(link.original_url);
+                            if (data) {
+                                data.opens.push(open);
+                            }
+                        }
+                    });
+                });
+
+                // Generate HTML for each URL's tracking data
+                trackingDiv.innerHTML = Array.from(trackingData.values()).map(data => `
+                    <div class="mb-8 border rounded-lg overflow-hidden">
+                        <div class="bg-gray-50 p-4">
+                            <h5 class="font-medium">Original URL: ${data.url}</h5>
+                            <div class="text-sm text-gray-600 mt-2">
+                                Short URLs: ${data.shortUrls.map(url => 
+                                    `<a href="${url}" class="text-blue-500 hover:underline" target="_blank">${url}</a>`
+                                ).join(', ')}
                             </div>
                         </div>
-                        ${link.clicks.length > 0 ? `
-                            <div class="mt-2 ml-4">
-                                <p class="text-sm font-medium">Click Details:</p>
-                                ${link.clicks.map(click => `
-                                    <div class="mt-1 text-sm text-gray-600">
-                                        <p>Time: ${formatDateTime(click.timestamp)}</p>
-                                        <p>Device: ${click.device_type}</p>
-                                        <p>Recipient: ${click.recipient || 'N/A'}</p>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                    </div>
-                `).join('');
-
-                // Update Opens List
-                const opensDiv = document.getElementById('campaignOpens');
-                opensDiv.innerHTML = campaign.opens.map(open => `
-                    <div class="border-b pb-4">
-                        <p class="font-medium">Recipient: ${open.recipient}</p>
-                        <p class="text-sm">Time: ${formatDateTime(open.timestamp)}</p>
-                        <p class="text-sm">Device: ${open.device_type}</p>
-                        <p class="text-sm">Opens: ${open.open_count}</p>
+                        <div class="p-4">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Recipient</th>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Link Clicks</th>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Email Opens</th>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Last Activity</th>
+                                        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500">Device</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${getRecipientRows(data)}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 `).join('');
             } catch (error) {
                 console.error('Error:', error);
             }
+        }
+
+        function getRecipientRows(data) {
+            const recipients = new Set([
+                ...data.clicks.map(c => c.recipient),
+                ...data.opens.map(o => o.recipient)
+            ]);
+
+            return Array.from(recipients).map(recipient => {
+                const recipientClicks = data.clicks.filter(c => c.recipient === recipient);
+                const recipientOpens = data.opens.filter(o => o.recipient === recipient);
+                const allDates = [
+                    ...recipientClicks.map(c => new Date(c.timestamp)),
+                    ...recipientOpens.map(o => new Date(o.timestamp))
+                ];
+                const lastActivity = allDates.length ? new Date(Math.max(...allDates)) : null;
+                const devices = new Set([
+                    ...recipientClicks.map(c => c.device_type),
+                    ...recipientOpens.map(o => o.device_type)
+                ]);
+
+                return `
+                    <tr>
+                        <td class="px-4 py-2">${recipient || 'Unknown'}</td>
+                        <td class="px-4 py-2">${recipientClicks.length}</td>
+                        <td class="px-4 py-2">${recipientOpens.reduce((sum, open) => sum + open.open_count, 0)}</td>
+                        <td class="px-4 py-2">${lastActivity ? formatDateTime(lastActivity) : '-'}</td>
+                        <td class="px-4 py-2">${Array.from(devices).join(', ') || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function openCampaignModal(campaignId) {
