@@ -1,10 +1,11 @@
-from flask import Flask, request, redirect, render_template, jsonify, send_file
+from flask import Flask, request, redirect, render_template, jsonify, send_file, session, url_for
 from datetime import datetime
 import os
 from dotenv import load_dotenv
 from database import db
 from models import Link, Click, EmailOpen, EmailCampaign
 from utils import generate_short_code, get_client_info, create_tracking_pixel
+from auth import login_required, check_credentials
 
 load_dotenv()
 
@@ -15,11 +16,31 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if check_credentials(username, password):
+            session['logged_in'] = True
+            return redirect(url_for('index'))
+        return render_template('login.html', error="Invalid credentials")
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
 @app.route('/api/create-link', methods=['POST'])
+@login_required
 def create_link():
     data = request.get_json()
     original_url = data.get('url')
@@ -67,6 +88,7 @@ def redirect_link(short_code):
     return redirect(link.original_url)
 
 @app.route('/api/create-campaign', methods=['POST'])
+@login_required
 def create_campaign():
     data = request.get_json()
     name = data.get('name')
@@ -113,6 +135,7 @@ def track_email_open(campaign_id, email_id):
     return send_file(create_tracking_pixel(), mimetype='image/gif')
 
 @app.route('/api/stats')
+@login_required
 def get_stats():
     links = Link.query.all()
     campaigns = EmailCampaign.query.all()
