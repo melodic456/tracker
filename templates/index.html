@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- Head section remains the same -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
+    <!-- Container and other sections remain the same until Campaign Stats -->
     <div class="container mx-auto px-4 py-8">
         <div class="flex justify-between items-center mb-8">
             <h1 class="text-3xl font-bold">Email Campaigns</h1>
@@ -68,7 +70,7 @@
                     <!-- Campaign Stats -->
                     <div>
                         <h3 class="text-xl font-semibold mb-4">Campaign Statistics</h3>
-                        <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="grid grid-cols-4 gap-4 mb-6">
                             <div class="bg-blue-50 p-4 rounded">
                                 <p class="text-sm text-blue-600">Total Opens</p>
                                 <p id="totalOpens" class="text-2xl font-bold">-</p>
@@ -80,6 +82,10 @@
                             <div class="bg-purple-50 p-4 rounded">
                                 <p class="text-sm text-purple-600">Total Links</p>
                                 <p id="totalLinks" class="text-2xl font-bold">-</p>
+                            </div>
+                            <div class="bg-orange-50 p-4 rounded">
+                                <p class="text-sm text-orange-600">Total Clicks</p>
+                                <p id="totalClicks" class="text-2xl font-bold">-</p>
                             </div>
                         </div>
 
@@ -97,6 +103,7 @@
     <script>
         let currentCampaignId = null;
 
+        // Previous functions remain the same until loadCampaignDetails
         async function createCampaign() {
             const name = document.getElementById('campaignName').value;
             if (!name) return;
@@ -203,10 +210,14 @@
                 
                 if (!campaign) return;
 
+                // Calculate total clicks across all links
+                const totalClicks = campaignLinks.reduce((sum, link) => sum + link.clicks.length, 0);
+
                 document.getElementById('modalCampaignName').textContent = campaign.name;
                 document.getElementById('totalOpens').textContent = campaign.total_opens;
                 document.getElementById('uniqueRecipients').textContent = campaign.unique_recipients;
                 document.getElementById('totalLinks').textContent = campaignLinks.length;
+                document.getElementById('totalClicks').textContent = totalClicks;
 
                 // Create tracking table
                 const trackingDiv = document.getElementById('campaignTracking');
